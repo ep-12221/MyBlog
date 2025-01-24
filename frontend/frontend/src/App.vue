@@ -1,82 +1,29 @@
-<script setup>
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
-import Sidebar from './components/SideBar.vue'
-
-</script>
-
 <template>
-  <el-container style="min-height: 100vh; margin: 0;">
-    <!-- 左侧导航栏 -->
-    <Sidebar />
-
-    <!-- 主内容 -->
-    <el-main class="bg-gray-100">
-      <router-view />
-    </el-main>
-  </el-container>
+  <div :class="backgroundClass">
+    <nav-bar />
+    <router-view />
+  </div>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
+<script setup>
+import { useRoute } from 'vue-router'
+import { computed } from 'vue'
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
+const route = useRoute()
 
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
+const backgroundClass = computed(() => {
+  const routesWithCustomBg = ['/custom-page1', '/custom-page2']
+  return routesWithCustomBg.includes(route.path)
+    ? ''
+    : 'bg-general'
+})
+</script>
 
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
+<style>
+.bg-general {
+  background-image: url('https://picdm.sunbangyan.cn/2023/11/08/8fee6a232a4487fe90862a28ae5b3c13.png');
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
 }
 </style>
