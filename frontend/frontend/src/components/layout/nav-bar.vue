@@ -1,55 +1,69 @@
 <template>
-  <!-- 修正过渡名称和模式 -->
   <transition name="nav-slide" mode="out-in">
     <nav
       v-show="!hideNav"
       :class="[
         'navbar fixed top-0 w-full z-50 transition-all duration-400',
-        'backdrop-blur-md supports-backdrop-blur:bg-opacity-90',
         isTransparent 
           ? 'bg-transparent shadow-none' 
-          : 'bg-white/90 dark:bg-neutral-800/90 shadow-sm',
+          : 'bg-white/90 dark:bg-neutral-800/90 shadow-sm backdrop-blur',
         isHome ? 'h-20' : 'h-16'
       ]"
     >
       <div class="container mx-auto px-4 h-full">
-        <div class="flex justify-between items-center h-full">
-          <!-- 确保路由链接正确 -->
+        <div class="flex items-center justify-between h-full">
+          <!-- 左侧Logo -->
           <router-link 
             to="/" 
-            class="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            class="flex items-center gap-2 hover:opacity-80 transition-opacity z-50"
             exact
           >
-            <!-- 添加默认logo示例 -->
             <div 
               v-if="!isTransparent"
-              class="w-8 h-8 bg-blue-500 rounded-full"
+              class="w-8 h-8 bg-blue-500 rounded-full transition-colors"
             />
             <span 
-              class="text-xl font-bold"
+              class="text-xl font-bold transition-colors"
               :class="isTransparent ? 'text-white' : 'text-gray-800 dark:text-white'"
             >
-              MyBlog
+              Your Logo
             </span>
           </router-link>
 
-          <!-- 桌面导航菜单 -->
-          <ul class="hidden md:flex items-center gap-4">
-            <li v-for="item in navItems" :key="item.path">
-              <router-link
-                :to="item.path"
-                class="px-3 py-2 rounded-lg transition-colors text-sm"
-                :class="[
-                  isTransparent 
-                    ? 'text-white/90 hover:bg-white/10' 
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10',
-                  { 'bg-white/20! font-medium': $route.path === item.path }
-                ]"
-              >
-                {{ item.name }}
-              </router-link>
-            </li>
-          </ul>
+          <!-- 居中导航菜单 -->
+          <div class="absolute left-1/2 -translate-x-1/2">
+            <ul class="hidden md:flex items-center gap-1 bg-white/10 dark:bg-neutral-700/10 rounded-full p-1.5 backdrop-blur shadow-sm">
+              <li v-for="item in navItems" :key="item.path">
+                <router-link
+                  :to="item.path"
+                  class="px-4 py-2 rounded-full transition-all relative flex items-center text-sm font-medium group"
+                  :class="[
+                    isTransparent 
+                      ? 'text-white/90 hover:bg-white/10' 
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-white/10',
+                    { '!text-blue-500': $route.path === item.path }
+                  ]"
+                >
+                  <span class="relative z-10">{{ item.name }}</span>
+                  <!-- 激活状态背景指示 -->
+                  <span 
+                    v-if="$route.path === item.path"
+                    class="absolute inset-0 bg-white/80 dark:bg-neutral-700/80 rounded-full transition-all"
+                  ></span>
+                  <!-- 悬停背景动画 -->
+                  <span 
+                    class="absolute inset-0 bg-white/30 dark:bg-neutral-700/30 rounded-full scale-0 group-hover:scale-100 transition-transform"
+                  ></span>
+                </router-link>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 右侧占位（可添加其他元素） -->
+          <div class="flex items-center gap-4 invisible">
+            <!-- 保持对称性的占位元素 -->
+            <div class="w-8 h-8"></div>
+          </div>
 
           <!-- 移动端菜单按钮 -->
           <div class="md:hidden">
@@ -84,7 +98,7 @@
       >
         <div
           v-if="isMobileMenuOpen"
-          class="md:hidden absolute top-full w-full bg-white dark:bg-neutral-800 shadow-lg"
+          class="md:hidden absolute top-full w-full bg-white/95 dark:bg-neutral-800/95 shadow-lg backdrop-blur"
         >
           <ul class="py-2">
             <li 
@@ -97,7 +111,12 @@
                 class="block px-6 py-3 hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors"
                 @click="closeMobileMenu"
               >
-                <span class="text-gray-800 dark:text-gray-200">{{ item.name }}</span>
+                <span 
+                  class="text-gray-800 dark:text-gray-200"
+                  :class="{ 'text-blue-500 font-medium': $route.path === item.path }"
+                >
+                  {{ item.name }}
+                </span>
               </router-link>
             </li>
           </ul>
@@ -109,17 +128,16 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 
 const route = useRoute()
-const router = useRouter()
 
 // 状态管理
 const hideNav = ref(false)
 const isMobileMenuOpen = ref(false)
 const isTransparent = ref(true)
 const lastScrollY = ref(0)
-const SCROLL_THRESHOLD = 100 // 滚动阈值调整为100px
+const SCROLL_THRESHOLD = 100
 
 // 导航配置
 const navItems = ref([
@@ -132,24 +150,17 @@ const navItems = ref([
 // 响应式计算属性
 const isHome = computed(() => route.path === '/')
 
-// 滚动处理（添加节流）
-let isThrottling = false
+// 优化后的滚动处理（添加节流）
+let scrollTimeout = null
 const handleScroll = () => {
-  if (isThrottling) return
-  isThrottling = true
-  
-  setTimeout(() => {
+  clearTimeout(scrollTimeout)
+  scrollTimeout = setTimeout(() => {
     const currentScrollY = window.scrollY
     const scrollingDown = currentScrollY > lastScrollY.value
     
-    // 向下滚动超过阈值时隐藏导航
     hideNav.value = scrollingDown && currentScrollY > SCROLL_THRESHOLD
-    
-    // 根据滚动位置更新透明状态
     isTransparent.value = currentScrollY < 50
-    
     lastScrollY.value = currentScrollY
-    isThrottling = false
   }, 100)
 }
 
@@ -184,7 +195,6 @@ onUnmounted(() => {
 </script>
 
 <style>
-/* 修正过渡动画 */
 .nav-slide-enter-active,
 .nav-slide-leave-active {
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
@@ -196,13 +206,47 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-/* 暗黑模式适配 */
-.dark .navbar {
-  --tw-bg-opacity: 0.9;
-  --tw-text-opacity: 1;
+/* 菜单项动画增强 */
+.navbar li a {
+  transition: 
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
-.dark .router-link-active {
-  background-color: rgba(255, 255, 255, 0.1);
+.navbar li a:hover {
+  transform: translateY(-1px);
+}
+
+/* 激活状态指示动画 */
+.navbar li a span:first-of-type {
+  transition: 
+    opacity 0.3s ease,
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 暗黑模式优化 */
+.dark .navbar li a.router-link-active {
+  color: theme('colors.blue.400');
+}
+
+.dark .navbar li a span:first-of-type {
+  background-color: theme('colors.blue.400/0.8');
+}
+
+.dark .navbar li a:hover span:last-of-type {
+  background-color: theme('colors.white/0.1');
+}
+
+/* 移动端菜单优化 */
+@media (max-width: 767px) {
+  .navbar .router-link-active span {
+    padding-left: 8px;
+    border-left: 3px solid theme('colors.blue.500');
+  }
+  
+  .dark .navbar .router-link-active span {
+    border-left-color: theme('colors.blue.400');
+  }
 }
 </style>
