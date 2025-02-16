@@ -1,170 +1,224 @@
 <template>
-  <transition name="nav-slide" mode="out-in">
-    <nav
-      v-show="!hideNav"
-      :class="[
-        'navbar fixed top-0 w-full z-50 transition-all duration-400',
-        isTransparent 
-          ? 'bg-transparent shadow-none' 
-          : 'bg-white/90 dark:bg-neutral-800/90 shadow-sm backdrop-blur',
-        isHome ? 'h-20' : 'h-16'
-      ]"
-    >
-      <div class="container mx-auto px-4 h-full">
-        <div class="flex items-center justify-between h-full">
-          <!-- 左侧Logo -->
-          <router-link 
-            to="/" 
-            class="flex items-center gap-2 hover:opacity-80 transition-opacity z-50"
-            exact
+  <nav
+    class="fixed top-0 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 w-full pointer-events-auto"
+    :class="[
+      scrolled ? 'bg-white/60 dark:bg-neutral-900/60 backdrop-blur-xl shadow-lg py-0' : 'bg-transparent backdrop-blur-0 py-4',
+      'border-b border-white/10 dark:border-gray-800/10',
+      { 'translate-y-0 opacity-100': !hideNav, '-translate-y-full opacity-0': hideNav }
+    ]"
+  >
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex items-center justify-between h-14">
+        <!-- Logo -->
+        <a 
+          href="javascript:void(0)" 
+          class="flex items-center space-x-2 text-lg font-semibold relative z-10"
+          :class="[
+            shouldUseWhiteText ? 'text-white' : 'text-gray-900 dark:text-white'
+          ]"
+          @click="handleNavClick('/')"
+        >
+          <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+            <span class="text-white">L</span>
+          </div>
+          <span>Logo</span>
+        </a>
+
+        <!-- 桌面端导航 -->
+        <div class="hidden md:flex items-center space-x-1 relative z-10">
+          <a
+            v-for="item in navItems"
+            :key="item.path"
+            href="javascript:void(0)"
+            class="px-4 py-2 rounded-full text-sm font-medium transition-all relative z-10"
+            :class="[
+              shouldUseWhiteText 
+                ? 'text-white hover:bg-white/10' 
+                : 'text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800',
+              { 
+                'bg-white/10': shouldUseWhiteText && route.path === item.path,
+                'bg-gray-100 dark:bg-gray-800': !shouldUseWhiteText && route.path === item.path
+              }
+            ]"
+            @click="handleNavClick(item.path)"
           >
-            <div 
-              v-if="!isTransparent"
-              class="w-8 h-8 bg-blue-500 rounded-full transition-colors"
+            {{ item.name }}
+          </a>
+        </div>
+
+        <!-- 右侧工具栏 -->
+        <div class="flex items-center space-x-2 relative z-10">
+          <!-- 主题切换 -->
+          <button
+            class="p-2 rounded-full transition-colors relative z-10"
+            :class="shouldUseWhiteText ? 'hover:bg-white/10' : 'hover:bg-gray-100 dark:hover:bg-gray-800'"
+            @click="toggleTheme"
+          >
+            <icon-sun
+              v-if="isDark"
+              class="w-5 h-5"
+              :class="shouldUseWhiteText ? 'text-white' : 'text-gray-900 dark:text-white'"
             />
-            <span 
-              class="text-xl font-bold transition-colors"
-              :class="isTransparent ? 'text-white' : 'text-gray-800 dark:text-white'"
-            >
-              Your Logo
-            </span>
-          </router-link>
-
-          <!-- 居中导航菜单 -->
-          <div class="absolute left-1/2 -translate-x-1/2">
-            <ul class="hidden md:flex items-center gap-1 bg-white/10 dark:bg-neutral-700/10 rounded-full p-1.5 backdrop-blur shadow-sm">
-              <li v-for="item in navItems" :key="item.path">
-                <router-link
-                  :to="item.path"
-                  class="px-4 py-2 rounded-full transition-all relative flex items-center text-sm font-medium group"
-                  :class="[
-                    isTransparent 
-                      ? 'text-white/90 hover:bg-white/10' 
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-white/10',
-                    { '!text-blue-500': $route.path === item.path }
-                  ]"
-                >
-                  <span class="relative z-10">{{ item.name }}</span>
-                  <!-- 激活状态背景指示 -->
-                  <span 
-                    v-if="$route.path === item.path"
-                    class="absolute inset-0 bg-white/80 dark:bg-neutral-700/80 rounded-full transition-all"
-                  ></span>
-                  <!-- 悬停背景动画 -->
-                  <span 
-                    class="absolute inset-0 bg-white/30 dark:bg-neutral-700/30 rounded-full scale-0 group-hover:scale-100 transition-transform"
-                  ></span>
-                </router-link>
-              </li>
-            </ul>
-          </div>
-
-          <!-- 右侧占位（可添加其他元素） -->
-          <div class="flex items-center gap-4 invisible">
-            <!-- 保持对称性的占位元素 -->
-            <div class="w-8 h-8"></div>
-          </div>
+            <icon-moon
+              v-else
+              class="w-5 h-5"
+              :class="shouldUseWhiteText ? 'text-white' : 'text-gray-900 dark:text-white'"
+            />
+          </button>
 
           <!-- 移动端菜单按钮 -->
-          <div class="md:hidden">
-            <button 
-              @click.stop="toggleMobileMenu"
-              class="p-2 rounded-lg transition-colors"
-              :class="isTransparent 
-                ? 'text-white hover:bg-white/10' 
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100'"
+          <button
+            class="md:hidden p-2 rounded-full transition-colors relative z-10"
+            :class="shouldUseWhiteText ? 'hover:bg-white/10' : 'hover:bg-gray-100 dark:hover:bg-gray-800'"
+            @click.stop="toggleMobileMenu"
+          >
+            <svg
+              class="w-5 h-5"
+              :class="shouldUseWhiteText ? 'text-white' : 'text-gray-900 dark:text-white'"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                <path 
-                  stroke="currentColor" 
-                  stroke-linecap="round" 
-                  stroke-width="2"
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </button>
-          </div>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
         </div>
       </div>
+    </div>
 
-      <!-- 移动端菜单 -->
-      <transition
-        enter-active-class="transition-all duration-300 ease-out"
-        leave-active-class="transition-all duration-200 ease-in"
-        enter-from-class="opacity-0 -translate-y-4"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 -translate-y-4"
+    <!-- 移动端菜单 -->
+    <transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-1"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-1"
+    >
+      <div
+        v-if="isMobileMenuOpen"
+        class="md:hidden absolute top-full left-0 right-0 mt-2 mx-4 bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden"
+        @click.stop
       >
-        <div
-          v-if="isMobileMenuOpen"
-          class="md:hidden absolute top-full w-full bg-white/95 dark:bg-neutral-800/95 shadow-lg backdrop-blur"
-        >
-          <ul class="py-2">
-            <li 
-              v-for="item in navItems" 
-              :key="item.path"
-              class="border-b border-gray-100 dark:border-neutral-700"
-            >
-              <router-link
-                :to="item.path"
-                class="block px-6 py-3 hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors"
-                @click="closeMobileMenu"
-              >
-                <span 
-                  class="text-gray-800 dark:text-gray-200"
-                  :class="{ 'text-blue-500 font-medium': $route.path === item.path }"
-                >
-                  {{ item.name }}
-                </span>
-              </router-link>
-            </li>
-          </ul>
+        <div class="p-2">
+          <a
+            v-for="item in navItems"
+            :key="item.path"
+            href="javascript:void(0)"
+            class="block px-4 py-2 text-sm font-medium rounded-xl transition-colors"
+            :class="[
+              'text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800',
+              { 'bg-gray-100 dark:bg-gray-800 font-semibold': route.path === item.path }
+            ]"
+            @click="handleNavClick(item.path)"
+          >
+            {{ item.name }}
+          </a>
         </div>
-      </transition>
-    </nav>
-  </transition>
+      </div>
+    </transition>
+  </nav>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 
+const router = useRouter()
 const route = useRoute()
-
-// 状态管理
+const scrolled = ref(false)
 const hideNav = ref(false)
 const isMobileMenuOpen = ref(false)
-const isTransparent = ref(true)
+const isDark = ref(false)
 const lastScrollY = ref(0)
-const SCROLL_THRESHOLD = 100
+const scrollTimeout = ref(null)
 
-// 导航配置
-const navItems = ref([
+const navItems = [
   { name: '首页', path: '/' },
-  { name: '文章', path: '/posts' },
-  { name: '项目', path: '/projects' },
+  { name: '文章', path: '/articles' },
   { name: '关于', path: '/about' }
-])
+]
 
-// 响应式计算属性
-const isHome = computed(() => route.path === '/')
-
-// 优化后的滚动处理（添加节流）
-let scrollTimeout = null
-const handleScroll = () => {
-  clearTimeout(scrollTimeout)
-  scrollTimeout = setTimeout(() => {
-    const currentScrollY = window.scrollY
-    const scrollingDown = currentScrollY > lastScrollY.value
-    
-    hideNav.value = scrollingDown && currentScrollY > SCROLL_THRESHOLD
-    isTransparent.value = currentScrollY < 50
-    lastScrollY.value = currentScrollY
-  }, 100)
+// 处理导航点击
+const handleNavClick = (path) => {
+  if (route.path === path) return
+  closeMobileMenu()
+  router.push(path)
 }
 
-// 移动菜单控制
+const shouldUseWhiteText = computed(() => {
+  // 在首页且未滚动时使用白色文字
+  return route.path === '/' && !scrolled.value
+})
+
+// 处理滚动
+const handleScroll = () => {
+  const currentScrollY = window.scrollY
+  scrolled.value = currentScrollY > 0
+
+  // 顶部区域始终显示导航栏
+  if (currentScrollY < 100) {
+    hideNav.value = false
+    lastScrollY.value = currentScrollY
+    return
+  }
+
+  // 计算滚动方向和距离
+  const scrollDelta = currentScrollY - lastScrollY.value
+  const isScrollingDown = scrollDelta > 0
+  const isScrollingUp = scrollDelta < 0
+  const isSignificantScroll = Math.abs(scrollDelta) > 10
+
+  // 清除之前的定时器
+  if (scrollTimeout.value) {
+    clearTimeout(scrollTimeout.value)
+  }
+
+  // 向下滚动且滚动距离足够时，立即隐藏
+  if (isScrollingDown && isSignificantScroll) {
+    hideNav.value = true
+  }
+  // 向上滚动且滚动距离足够时，立即显示
+  else if (isScrollingUp && isSignificantScroll) {
+    hideNav.value = false
+  }
+  // 缓慢滚动时，等待一段时间后再决定是否隐藏
+  else {
+    scrollTimeout.value = setTimeout(() => {
+      hideNav.value = isScrollingDown
+    }, 150)
+  }
+
+  lastScrollY.value = currentScrollY
+}
+
+// 使用节流函数优化滚动处理
+const throttledScroll = () => {
+  let ticking = false
+  return () => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        handleScroll()
+        ticking = false
+      })
+      ticking = true
+    }
+  }
+}
+
+// 切换主题
+const toggleTheme = () => {
+  isDark.value = !isDark.value
+  document.documentElement.classList.toggle('dark', isDark.value)
+  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+}
+
+// 移动端菜单控制
 const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
 }
@@ -173,80 +227,89 @@ const closeMobileMenu = () => {
   isMobileMenuOpen.value = false
 }
 
-// 路由变化监听
-watch(() => route.path, () => {
-  closeMobileMenu()
+// 监听路由变化时显示导航栏
+watch(route, () => {
+  hideNav.value = false
+  // 在非首页时，确保导航栏有背景色
+  if (route.path !== '/') {
+    scrolled.value = true
+  } else {
+    // 在首页时，根据滚动位置决定背景色
+    scrolled.value = window.scrollY > 0
+  }
 })
 
-// 事件监听
+// 初始化
 onMounted(() => {
-  window.addEventListener('scroll', handleScroll)
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.navbar')) {
+  // 初始化导航栏状态
+  if (route.path !== '/') {
+    scrolled.value = true
+  } else {
+    scrolled.value = window.scrollY > 0
+  }
+
+  // 初始化主题
+  const savedTheme = localStorage.getItem('theme')
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  isDark.value = savedTheme === 'dark' || (!savedTheme && prefersDark)
+  document.documentElement.classList.toggle('dark', isDark.value)
+
+  // 创建节流后的滚动处理函数
+  const throttledScrollHandler = throttledScroll()
+  
+  // 添加滚动监听
+  window.addEventListener('scroll', throttledScrollHandler)
+  
+  // 点击外部关闭移动端菜单
+  const handleClickOutside = (e) => {
+    if (isMobileMenuOpen.value && !e.target.closest('nav')) {
       closeMobileMenu()
+    }
+  }
+  
+  document.addEventListener('click', handleClickOutside)
+  
+  // 正确设置清理函数
+  onUnmounted(() => {
+    window.removeEventListener('scroll', throttledScrollHandler)
+    document.removeEventListener('click', handleClickOutside)
+    if (scrollTimeout.value) {
+      clearTimeout(scrollTimeout.value)
     }
   })
 })
-
-onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
-  document.removeEventListener('click', closeMobileMenu)
-})
 </script>
 
-<style>
-.nav-slide-enter-active,
-.nav-slide-leave-active {
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+<style scoped>
+.router-link-active {
+  font-weight: 500;
 }
 
-.nav-slide-enter-from,
-.nav-slide-leave-to {
-  transform: translateY(-100%);
+/* 确保过渡动画平滑 */
+nav {
+  transform-origin: top;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+/* 优化移动端菜单动画 */
+.mobile-menu-enter-active,
+.mobile-menu-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-menu-enter-from,
+.mobile-menu-leave-to {
   opacity: 0;
+  transform: translateY(-10px);
 }
 
-/* 菜单项动画增强 */
-.navbar li a {
-  transition: 
-    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-    background-color 0.3s ease,
-    color 0.3s ease;
+/* 滚动时的阴影效果 */
+nav {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.navbar li a:hover {
-  transform: translateY(-1px);
-}
-
-/* 激活状态指示动画 */
-.navbar li a span:first-of-type {
-  transition: 
-    opacity 0.3s ease,
-    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* 暗黑模式优化 */
-.dark .navbar li a.router-link-active {
-  color: theme('colors.blue.400');
-}
-
-.dark .navbar li a span:first-of-type {
-  background-color: theme('colors.blue.400/0.8');
-}
-
-.dark .navbar li a:hover span:last-of-type {
-  background-color: theme('colors.white/0.1');
-}
-
-/* 移动端菜单优化 */
-@media (max-width: 767px) {
-  .navbar .router-link-active span {
-    padding-left: 8px;
-    border-left: 3px solid theme('colors.blue.500');
-  }
-  
-  .dark .navbar .router-link-active span {
-    border-left-color: theme('colors.blue.400');
-  }
+nav.scrolled {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 </style>
